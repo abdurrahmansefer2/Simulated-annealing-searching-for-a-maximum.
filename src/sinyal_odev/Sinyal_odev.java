@@ -69,7 +69,7 @@ import org.jfree.ui.TextAnchor;
  */
 public class Sinyal_odev {
 
-     static JFrame frame;
+  static JFrame frame;
     static ValueMarker marker;
     static XYPlot plot;
     static JFreeChart chart;
@@ -84,18 +84,18 @@ public class Sinyal_odev {
         Sinyal_odev obj = new Sinyal_odev();
         CMatrix cm = CMatrix.getInstance().randTimeSeries(x_size, 1, -0.001, 0.001);
         obj.matrix = cm.toDoubleArray1D();
-        for (int i = 0; i < obj.matrix.length; i++) {
-            double eski = obj.matrix[i];
 
-            obj.matrix[i] = Double.valueOf(String.format("%.5f", eski));
-        }
-
+//        for (int i = 0; i < obj.matrix.length; i++) {
+//            double eski = obj.matrix[i];
+//
+//            obj.matrix[i] = Double.valueOf(String.format("%.5f", eski));
+//        }
         frame = new JFrame("Simulated Annealing ");
         frame.setSize(1300, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         XYDataset ds = createDataset(obj.matrix);
-        chart = ChartFactory.createXYLineChart("Simulated Annealing", "x", "y", ds, PlotOrientation.VERTICAL, true, true, false);
+        chart = ChartFactory.createXYLineChart("Simulated Annealing", "X", "Y", ds, PlotOrientation.VERTICAL, true, true, true);
         plot = (XYPlot) chart.getPlot();
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
@@ -108,25 +108,20 @@ public class Sinyal_odev {
 
         marker = new ValueMarker(0);
         marker.setPaint(Color.yellow);
-
         marker.setValue(0);
         marker.setLabel("X= " + 0 + " Y= " + 0);
-
         marker.setLabelAnchor(RectangleAnchor.TOP);
+
         marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
+
         plot.addDomainMarker(0, marker, Layer.FOREGROUND);
-
         ChartPanel cp = new ChartPanel(chart);
-
         jPanel4 = new JPanel();
         jPanel4.setLayout(new BorderLayout());
         jPanel4.add(cp, BorderLayout.NORTH);
-
         frame.add(jPanel4);
         frame.setVisible(true);
-
         obj.SimulatedAnnealingAlgorithm(cm);
-
     }
 
     private static XYDataset createDataset(double[] d) {
@@ -166,9 +161,9 @@ public class Sinyal_odev {
             points.add(i);
         }
         while (temperature > final_temperature) {
-            
+
             double rand = Math.random();
-            
+
             double sol = 1 / Math.exp(matrix[currentpoint] / temperature);
             if (rand < sol) {
                 currentpoint = nextPoint(currentpoint, points, matrix);
@@ -236,17 +231,20 @@ public class Sinyal_odev {
                 plot.removeDomainMarker(marker);
                 marker.setValue(index);
                 marker.setLabel("X= " + index + " Value= " + value + " temperature= " + temperature);
-
                 marker.setLabelAnchor(RectangleAnchor.TOP);
-                marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
+                if (index < x_size / 2) {
+                    marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
+                } else {
+                    marker.setLabelTextAnchor(TextAnchor.TOP_RIGHT);
+                }
                 plot.addDomainMarker(0, marker, Layer.FOREGROUND);
                 ChartPanel cp = new ChartPanel(chart);
+                //jPanel4.removeAll();
                 jPanel4.add(cp, BorderLayout.NORTH);
-                frame.add(cp);
-                //
+                frame.add(jPanel4);
+                
             }
         }).start();
     }
-
 
 }
