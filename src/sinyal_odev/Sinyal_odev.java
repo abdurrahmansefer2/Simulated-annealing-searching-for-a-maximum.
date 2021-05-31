@@ -11,6 +11,7 @@ import cezeri.image_processing.ImageProcess;
 import cezeri.machine_learning.extraction.FeatureExtractionPistachio;
 import cezeri.matrix.CMatrix;
 import cezeri.search.meta_heuristic.simulated_annealing.SimulatedAnnealing;
+import cezeri.web.TestReadWebContent;
 
 
 
@@ -68,18 +69,11 @@ import org.jfree.ui.TextAnchor;
  */
 public class Sinyal_odev {
 
-    private static BufferedImage image;
-
-    int initial_temperature = 100;
-    double cooling = 0.8;  //cooling coefficient
-    int number_variables = 2;
-    int[] upper_bounds = new int[]{3, 3};
-    int[] lower_bounds = new int[]{-3, -3};
-    int computing_time = 1;  //second(s)
-    static JFrame frame;
+     static JFrame frame;
     static ValueMarker marker;
     static XYPlot plot;
     static JFreeChart chart;
+    static JPanel jPanel4;
 
     static int x_size = 1000;
 
@@ -88,7 +82,7 @@ public class Sinyal_odev {
     public static void main(String[] args) {
 
         Sinyal_odev obj = new Sinyal_odev();
-        CMatrix cm = CMatrix.getInstance().randTimeSeries(x_size, 1, -0.1, 0.1);
+        CMatrix cm = CMatrix.getInstance().randTimeSeries(x_size, 1, -0.001, 0.001);
         obj.matrix = cm.toDoubleArray1D();
         for (int i = 0; i < obj.matrix.length; i++) {
             double eski = obj.matrix[i];
@@ -97,9 +91,8 @@ public class Sinyal_odev {
         }
 
         frame = new JFrame("Simulated Annealing ");
-        frame.setSize(1000, 400);
+        frame.setSize(1300, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setVisible(true);
 
         XYDataset ds = createDataset(obj.matrix);
         chart = ChartFactory.createXYLineChart("Simulated Annealing", "x", "y", ds, PlotOrientation.VERTICAL, true, true, false);
@@ -111,6 +104,8 @@ public class Sinyal_odev {
         NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
         rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
+        rangeAxis.setAutoRange(false);
+
         marker = new ValueMarker(0);
         marker.setPaint(Color.yellow);
 
@@ -120,9 +115,15 @@ public class Sinyal_odev {
         marker.setLabelAnchor(RectangleAnchor.TOP);
         marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
         plot.addDomainMarker(0, marker, Layer.FOREGROUND);
+
         ChartPanel cp = new ChartPanel(chart);
 
-        frame.getContentPane().add(cp);
+        jPanel4 = new JPanel();
+        jPanel4.setLayout(new BorderLayout());
+        jPanel4.add(cp, BorderLayout.NORTH);
+
+        frame.add(jPanel4);
+        frame.setVisible(true);
 
         obj.SimulatedAnnealingAlgorithm(cm);
 
@@ -147,6 +148,10 @@ public class Sinyal_odev {
     int currentpoint;
     List<Integer> points;
 
+    int initial_temperature = 25;
+    double final_temperature = 0.1;
+    double alpha = 0.7;
+
     public void SimulatedAnnealingAlgorithm(CMatrix cm) {
 
         temperature = 25;
@@ -157,38 +162,34 @@ public class Sinyal_odev {
         System.out.println("Min = " + min);
         System.out.println("Max = " + max);
         currentpoint = getIndex(min, matrix);
-
         for (int i = 0; i < matrix.length; i++) {
-
             points.add(i);
-
-            // System.out.println(i);
         }
-
-        while (true) {
-
-            if (temperature > 0.1) {
-                temperature *= 0.99;
-            } else {
-                System.out.println("temperature 0");
-                return;
-            }
-
+        while (temperature > final_temperature) {
+            
             double rand = Math.random();
+            
             double sol = 1 / Math.exp(matrix[currentpoint] / temperature);
-
-            // System.out.println(rand);
-            // System.out.println(sol);
             if (rand < sol) {
-                System.out.println(currentpoint + " " + matrix[currentpoint] + "  " + temperature);
                 currentpoint = nextPoint(currentpoint, points, matrix);
-                animasiton(currentpoint, matrix[currentpoint]);
+
+                if (currentpoint == -1) {
+
+                    System.out.println("temperature 0");
+                    return;
+                }
+
+                System.out.println("index = " + currentpoint + " value= " + matrix[currentpoint] + " temperature= " + temperature);
+                animasiton(currentpoint, matrix[currentpoint], temperature);
+                try {
+                    Thread.sleep(3000);
+                } catch (Exception ex) {
+                }
 
             }
-
             if (points.size() == 0) {
                 temperature = 0;
-                System.out.println("Point 0");
+                System.out.println("Points 0");
                 return;
             }
 
@@ -216,30 +217,36 @@ public class Sinyal_odev {
             nextPoint = points.get(new Random().nextInt(points.size()));
 
             next = matrix[nextPoint];
-
+            temperature -= alpha;
             if (curent < next) {
                 //System.out.println("Next :  " + next);
                 return nextPoint;
+            }
+            if (temperature < 0) {
+                return -1;
             }
 
         }
         // return nextPoint;
     }
 
-    public static void animasiton(int index, double value) {
+    public static void animasiton(int index, double value, double temperature) {
+        new Thread(new Runnable() {
+            public void run() {
+                plot.removeDomainMarker(marker);
+                marker.setValue(index);
+                marker.setLabel("X= " + index + " Value= " + value + " temperature= " + temperature);
 
-        plot.removeDomainMarker(marker);
-
-        marker.setValue(index);
-        marker.setLabel("X= " + index + " Y= " + value);
-
-        marker.setLabelAnchor(RectangleAnchor.TOP);
-        marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
-        plot.addDomainMarker(0, marker, Layer.FOREGROUND);
-        ChartPanel cp = new ChartPanel(chart);
-        frame.getContentPane().removeAll();
-        frame.getContentPane().add(cp);
-
+                marker.setLabelAnchor(RectangleAnchor.TOP);
+                marker.setLabelTextAnchor(TextAnchor.TOP_LEFT);
+                plot.addDomainMarker(0, marker, Layer.FOREGROUND);
+                ChartPanel cp = new ChartPanel(chart);
+                jPanel4.add(cp, BorderLayout.NORTH);
+                frame.add(cp);
+                //
+            }
+        }).start();
     }
+
 
 }
